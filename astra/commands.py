@@ -1,11 +1,10 @@
 # === as astra/commands.py ===
-from astra.memory import (
-    get_db_cursor, log_diary, load_user_fields, update_memory
+from astra.memory.core import (
+    get_db_cursor, load_user_fields
 )
 from astra.utils import load_recent_log_summary
-from astra.emr import encode_fragments_with_emr, update_emr_weight
+from astra.memory.emr import encode_fragments_with_emr, update_emr_weight
 from rich.console import Console
-from rich.markdown import Markdown
 from datetime import datetime
 
 console = Console()
@@ -74,7 +73,7 @@ def cmd_ver_diario():
     c.execute("SELECT context, text, date FROM diary ORDER BY date DESC LIMIT 3")
     entries = c.fetchall()
     if entries:
-        console.print(f"[bold green]Entradas del diario:[/]\n" +
+        console.print("[bold green]Entradas del diario:[/]\n" +
                       "\n".join(f"[{d}] {ctx}: {t}" for ctx, t, d in entries))
     else:
         console.print("[bold green]No hay entradas en el diario.[/]")
@@ -84,7 +83,7 @@ def cmd_ver_memorias():
     c.execute("SELECT tag, text FROM fragments ORDER BY date DESC LIMIT 3")
     frags = c.fetchall()
     if frags:
-        console.print(f"[bold green]Memorias:[/]\n" +
+        console.print("[bold green]Memorias:[/]\n" +
                       "\n".join(f"[{tag}] {txt}" for tag, txt in frags))
     else:
         console.print("[bold green]No hay memorias guardadas.[/]")

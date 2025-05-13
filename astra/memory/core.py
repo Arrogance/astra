@@ -1,10 +1,10 @@
-# === astra/memory.py ===
+# === astra/memory/core.py ===
 
 import sqlite3
 import json
 from datetime import datetime
 from astra.utils import sanitize
-from astra.emr import load_emr_weights
+from astra.memory.emr import load_emr_weights
 
 DB_FILE = "astra_memory.db"
 conn = sqlite3.connect(DB_FILE, check_same_thread=False)
@@ -110,6 +110,22 @@ def extract_memory_note(text):
             return match.group(1).strip().rstrip(".")
     return None
 
+def format_tags(emr_tag: str, analysis: dict) -> str:
+    """
+    Combina una etiqueta EMR (ej: @DL) con las etiquetas del análisis
+    (concepts y emotions), y las devuelve como string serializado.
+
+    Ejemplo: "@DL #PAST #NEGATIVE"
+    """
+    if not emr_tag:
+        emr_tag = "reflexión"  # etiqueta por defecto si no hay EMR match
+
+    concept_tags = analysis.get("concepts", [])
+    emotion_tags = analysis.get("emotions", [])
+
+    all_tags = [emr_tag] + sorted(set(concept_tags + emotion_tags))
+    return " ".join(all_tags).strip()
+
 def save_fragment(text, tag, user_input, client):
     text = sanitize(text).replace("\n", " ")
     user_input = sanitize(user_input).replace("\n", " ")
@@ -145,7 +161,7 @@ def tag_fragment(text: str) -> str:
 
     return max(tag_score.items(), key=lambda x: x[1])[0]
 
-def is_memorable_by_ai(client, text, aux_client, aux_model_name):
+def is_memorable_by_ai(client, text, model_name):
     """
     Evalúa si 'text' debe guardarse como recuerdo emocional,
     usando 'aux_client' con el modelo 'aux_model_name'.
@@ -170,8 +186,8 @@ def is_memorable_by_ai(client, text, aux_client, aux_model_name):
     ]
 
     try:
-        # Llamada correcta: sólo le pasamos mensajes y nombre de modelo
-        response_text = aux_client.chat_completion(messages, aux_model_name)
+        # Llamada correcta: solo le pasamos mensajes y nombre de modelo
+        response_text = client.chat_completion(messages, model_name)
         # response_text ya es un string
         normalized = response_text.strip().lower()
         # Devuelve True sólo si ha respondido afirmativamente
