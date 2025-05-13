@@ -1,11 +1,20 @@
+# === astra/memory.py ===
+
 import sqlite3
 import json
 from datetime import datetime
 from astra.utils import sanitize
+from astra.emr import load_emr_weights
 
 DB_FILE = "astra_memory.db"
 conn = sqlite3.connect(DB_FILE, check_same_thread=False)
 c = conn.cursor()
+
+# EMR tags
+emr_tags = {
+    "duelo": "@DL", "deseo": "@DS", "identidad": "@ID", "culpa": "@CU", "nostalgia": "@NS",
+    "esperanza": "@ES", "rabia": "@RB", "soledad": "@SO", "afecto": "@AF", "ansiedad": "@AN", "vergüenza": "@VG"
+}
 
 def get_db_cursor():
     return c
@@ -26,13 +35,18 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT, date TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS user_memory
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT, date TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS compressed_memories
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, tag TEXT, text TEXT, date TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS emotion_tags
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, tag TEXT NOT NULL, keyword TEXT NOT NULL)''')
     c.execute("CREATE INDEX IF NOT EXISTS idx_fragments_text ON fragments(text)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_forgotten_text ON forgotten_fragments(text)")
     conn.commit()
+
+def detect_temporal_label(text: str) -> str:
+    lower = text.lower()
+    if any(w in lower for w in ["ayer", "antes", "recuerdo", "fue", "perdí", "tuve"]): return "#PAST"
+    if any(w in lower for w in ["ahora", "hoy", "siento", "estoy", "me pasa"]): return "#NOW"
+    if any(w in lower for w in ["mañana", "algún día", "quizá", "espero", "soñaré"]): return "#FUT"
+    return ""
 
 def log_last_input(text):
     text = sanitize(text)
@@ -60,22 +74,27 @@ def update_memory(key, value):
     c.execute("INSERT INTO user_memory (key, value, date) VALUES (?, ?, ?)", (key, value, date))
     conn.commit()
 
-def load_last_fragments(limit=20):
+def load_last_fragments(limit=50):
+    """
+    Carga los últimos fragmentos, puntuados por peso emocional y antigüedad.
+    """
     c = get_db_cursor()
     weights = load_emr_weights()
 
-    c.execute("SELECT tag, text, date FROM fragments ORDER BY date DESC LIMIT 100")
+    c.execute("SELECT tag, text, date FROM fragments")
     fragments = c.fetchall()
 
     def score(row):
         tag, _, date = row
         weight = weights.get(tag, 1.0)
-        timestamp = datetime.strptime(date, "%Y-%m-%d %H:%M")
+        try:
+            timestamp = datetime.strptime(date, "%Y-%m-%d %H:%M")
+        except:
+            return 0  # descartar si hay error
         recency = (datetime.now() - timestamp).total_seconds()
-        return weight / (1 + recency / 3600)  # más reciente y más peso => más alto
+        return weight / (1 + recency / 3600)
 
-    fragments.sort(key=score, reverse=True)
-    return fragments[:limit]
+    return sorted(fragments, key=score, reverse=True)[:limit]
 
 def extract_memory_note(text):
     import re
@@ -100,15 +119,14 @@ def save_fragment(text, tag, user_input, client):
               (text, tag, date, user_input))
     c.connection.commit()
 
-def filter_relevant_fragments(user_input, limit=5):
+def filter_relevant_fragments(user_input, limit=15):
     keywords = user_input.lower().split()
     if not keywords:
         return []
-    query = "SELECT text FROM fragments WHERE " + " OR ".join(["text LIKE ?" for _ in keywords])
+    query = "SELECT tag, text, date FROM fragments WHERE " + " OR ".join(["text LIKE ?" for _ in keywords])
     params = [f"%{kw}%" for kw in keywords]
     c.execute(query, params)
-    relevant_frags = [row[0] for row in c.fetchall()][:limit]
-    return relevant_frags
+    return c.fetchall()[:limit]
 
 def tag_fragment(text: str) -> str:
     text = text.lower()

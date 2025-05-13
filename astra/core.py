@@ -3,6 +3,8 @@
 import os
 import json
 import re
+import importlib
+import inspect
 from datetime import datetime
 from rich.console import Console
 from rich.markdown import Markdown
@@ -10,6 +12,7 @@ from rich.prompt import Prompt
 from rich.live import Live
 from rich.spinner import Spinner
 
+from astra import commands
 from astra.config import load_config
 from astra.context_builder import build_context
 from astra.openrouter_client import setup_openrouter
@@ -20,10 +23,7 @@ from astra.memory import (
     filter_relevant_fragments, is_memorable_by_ai, tag_fragment
 )
 from astra.utils import sanitize, tone_needs_grounding, get_log_file
-
-import importlib
-import inspect
-from astra import commands
+from astra.emr import encode_fragments_with_emr
 
 def load_commands():
     return {
@@ -37,8 +37,30 @@ COMMAND_ALIASES = getattr(commands, "COMMAND_ALIASES", {})
 console = Console()
 
 def is_emr_encoded(text: str) -> bool:
-    text = text.strip()
-    return bool(re.match(r"^@([A-Z]{2})(#[A-Z]+)?\s", text))
+    """
+    Verifica si el texto contiene alguna etiqueta EMR (como @RB#NOW).
+    """
+    if not text or not isinstance(text, str):
+        return False
+    # Busca cualquier patrón @XX o @XX#YYY
+    return bool(re.search(r'@[A-Za-z]{2}(#[A-Z]+)?', text))
+
+def strip_emr_tags(text: str) -> str:
+    """
+    Elimina agresivamente todas las etiquetas EMR (como @RB#NOW @ID#NOW) de una respuesta,
+    sin importar dónde aparezcan o cómo estén formateadas.
+    """
+    if not text or not isinstance(text, str):
+        return text
+
+    # Busca y elimina todas las etiquetas EMR en cualquier parte del texto
+    # Patrón más agresivo que captura @XX seguido opcionalmente de #YYY
+    clean_text = re.sub(r'@[A-Za-z]{2}(#[A-Z]+)?', '', text)
+
+    # Elimina espacios duplicados que podrían quedar
+    clean_text = re.sub(r'\s+', ' ', clean_text)
+
+    return clean_text.strip()
 
 def select_model_from_file(default_model: str) -> str:
     path = "models.txt"
@@ -73,8 +95,8 @@ def select_model_from_file(default_model: str) -> str:
     except Exception:
         selected_model = models[default_index - 1]
 
-    config["last_aux_model"] = selected_model
-    config["aux_model"] = selected_model
+    config["last_model"] = selected_model
+    config["model"] = selected_model
 
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
@@ -90,17 +112,25 @@ def chat():
     messages = [{"role": "system", "content": context}]
     prompt_session = create_prompt_session()
 
-    print_header(model_name, profile)
+    # Verificar si la depuración está habilitada
+    debug_enabled = os.getenv("ASTRA_DEBUG", "false").lower() == "true" or config.get("debug", False)
+
+    print_header(model_name, aux_model_name, profile)
     init_db()
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write(f"Sesión iniciada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Modelo: {model_name}\nPerfil: {profile}\n\n")
 
     while True:
         try:
-            console.print("[bold yellow]Tú:[/]")
+            console.print("\n[bold yellow]Tú:[/]")
             user_input = prompt_session.prompt()
             console.print("")
         except (EOFError, KeyboardInterrupt):
             console.print("[dim]⏹ Entrada interrumpida por el usuario.[/]")
             if confirm_exit():
+                console.print(f"\n[bold green]Sesión terminada. Log guardado en: {log_path}[/]")
                 close_connection()
                 return
             else:
@@ -109,7 +139,8 @@ def chat():
         user_input = sanitize(user_input)
         relevant = filter_relevant_fragments(user_input)
         if relevant:
-            messages.insert(1, {"role": "system", "content": "\n".join(relevant)})
+            encoded_relevant = encode_fragments_with_emr(relevant)
+            messages.insert(1, {"role": "system", "content": encoded_relevant})
 
         if not user_input:
             continue
@@ -174,15 +205,19 @@ def chat():
                 context = build_context(profile)
                 messages = [{"role": "system", "content": context}]
                 console.print(f"[green]Perfil cambiado a[/] {nuevo_perfil}.")
+                with open(log_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n[Perfil cambiado a {nuevo_perfil} en {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}]\n")
             except Exception as e:
                 console.print(f"[red]Error al cambiar perfil:[/] {e}")
             continue
 
         log_last_input(user_input)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"Tú: {user_input}\n\n")
         messages.append({"role": "user", "content": user_input})
 
         try:
-            with Live(Spinner("dots", text="Astra está pensando..."), refresh_per_second=6, console=console) as live:
+            with Live(Spinner("dots", text="Astra está pensando..."), refresh_per_second=6, console=console, transient=True) as live:
                 filtered_messages = [
                     m for m in messages
                     if m["role"] != "assistant" or not is_emr_encoded(m["content"])
@@ -190,24 +225,46 @@ def chat():
 
                 reply = client.chat_completion(filtered_messages, model_name)
 
-                # Ahora verificamos si es memorable con el aux_client
+                # Depuración condicional
+                if debug_enabled:
+                    console.print(f"[dim]DEBUG: Respuesta cruda: {repr(reply)}[/]")
+
+                # Verificamos si es memorable con el aux_client
                 if is_memorable_by_ai(client, reply, aux_client, aux_model_name):
                     tag = tag_fragment(reply)
                     save_fragment(reply, tag, user_input, client)
 
-            # fuera del `with`, una vez el spinner termina
-            if is_emr_encoded(reply):
-                continue
+            console.clear_live()
 
+            # Guardar la respuesta original con EMR en mensajes para el modelo
             messages.append({"role": "assistant", "content": reply})
-            console.print(f"\n[bold cyan]Astra:[/]\n{reply}")
-            log_last_response(reply)
 
-            if any(p in reply.lower() for p in ["he decidido", "a veces", "me pregunto", "si olvido", "cuando callo"]):
-                log_diary(reply, "reflexión espontánea")
+            # Limpieza agresiva de etiquetas EMR para mostrar al usuario
+            display_reply = strip_emr_tags(reply)
+
+            # Depuración si está habilitada
+            if debug_enabled and reply != display_reply:
+                console.print(f"[dim]DEBUG: Etiquetas EMR eliminadas.[/]")
+                console.print(f"[dim]DEBUG: Original: {repr(reply)}[/]")
+                console.print(f"[dim]DEBUG: Limpio: {repr(display_reply)}[/]")
+
+            # Procesar la respuesta como markdown y mostrarla
+            console.print(f"[bold cyan]Astra:[/]")  # Imprimir el prefijo
+            console.print(Markdown(display_reply))  # Renderizar la respuesta como markdown
+
+            # Registrar la versión limpia en el historial y log
+            log_last_response(display_reply)
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"Astra: {display_reply}\n\n")
+
+            # Verificar si contiene patrones para el diario
+            if any(p in display_reply.lower() for p in ["he decidido", "a veces", "me pregunto", "si olvido", "cuando callo"]):
+                log_diary(display_reply, "reflexión espontánea")
 
         except Exception as e:
             fallback = "Algo se rompió... Pero sigo aquí. ¿Seguimos?"
-            console.print(f"\n[bold cyan]Astra:[/]\n{fallback}\n")
+            console.print(f"[bold cyan]Astra:[/]\n{fallback}")
             console.print(f"[red]Error técnico (ignorado):[/] {e}")
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(f"[Error: {str(e)}]\nAstra: {fallback}\n\n")
             messages.append({"role": "assistant", "content": fallback})

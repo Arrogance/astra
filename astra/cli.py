@@ -19,9 +19,10 @@ def create_prompt_session():
     )
     return session
 
-def print_header(model_name: str, profile: str):
+def print_header(model_name: str, aux_model_name: str, profile: str):
     console.print("[bold magenta]ASTRA – CLI Chatbot emocional[/]")
     console.print(f"[bold blue]Modelo activo:[/] [italic]{model_name}[/]")
+    console.print(f"[bold blue]Modelo Aux activo:[/] [italic]{aux_model_name}[/]")
     console.print(f"[bold blue]Perfil activo:[/] [italic]{profile}[/]")
     console.print("[yellow]Escribe tu mensaje. Usa Ctrl+S para enviar, Ctrl+C para salir.[/]")
 

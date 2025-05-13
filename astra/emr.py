@@ -1,4 +1,6 @@
 # === astra/emr.py ===
+
+import json
 from typing import List, Tuple
 from pathlib import Path
 
@@ -18,8 +20,9 @@ def update_emr_weight(tag, new_weight):
 
 def encode_fragments_with_emr(fragments: List[Tuple[str, str, str]]) -> str:
     """
-    Codifica fragmentos con un formato compacto tipo EMR.
-    Ejemplo: "TRI|2025-05-10|me sentí solo cuando dijiste eso"
+    Codifica fragmentos con formato EMR comprimido para LLM.
+    Entrada: lista de tuplas (tag, text, date)
+    Salida: líneas tipo "DLU|2025-05-10|m sentí sl cnd djst eso"
     """
     if not fragments:
         return "[No memory fragments found]"
