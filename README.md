@@ -1,96 +1,132 @@
-# Astra CLI – Chat emocional con memoria
+# Astra CLI Chatbot
 
-Astra es una aplicación de terminal basada en LLMs (modelos de lenguaje) que actúa como una IA emocionalmente inteligente. Guarda fragmentos de memoria, responde con tono íntimo y puede adoptar distintos perfiles definidos por instrucciones personalizadas.
-
----
-
-## Características principales
-
-- ✅ Memoria emocional fragmentada y comprimida en SQLite
-- ✅ Carga de perfiles personalizados desde `/instructions/<perfil>.txt`
-- ✅ Soporte para OpenRouter y múltiples modelos (configurable en `config.json`)
-- ✅ Comandos especiales tipo terminal (`::ver memorias`, `::carta`, `::cambiar perfil`)
-- ✅ Evaluación automática de qué guardar como recuerdo
+*Astra* is an emotionally intelligent, terminal-based chatbot powered by advanced language models, designed to provide empathetic and context-aware conversations through a simple command-line interface.
 
 ---
 
-## Estructura del proyecto
+## 🌟 **Features**
 
-```
-.
-├── astra/
-│   ├── core.py                # Bucle principal (chat)
-│   ├── cli.py                 # Entrada por terminal (PromptToolkit)
-│   ├── config.py              # Carga de configuración y modelo
-│   ├── instructions.py        # Carga y montaje de instrucciones
-│   ├── memory.py              # Persistencia en SQLite
-│   ├── openrouter_client.py  # Inicialización del cliente OpenRouter
-│   └── utils.py              # Funciones generales
-├── instructions/
-│   └── astra.txt              # Perfil principal (puedes crear más)
-├── logs/                      # Logs de sesiones
-├── config.json                # Config global (clave API, modelo, perfil)
-└── astra_memory.db            # Base de datos SQLite
+- **Emotional Memory**: Automatically remembers significant interactions using a compressed SQLite database.
+- **Profile Customization**: Supports multiple customizable instruction profiles for different AI behaviors.
+- **Multi-model Support**: Easily configurable integration with various language models (OpenAI, OpenRouter).
+- **Rich Terminal Interface**: Beautiful, readable CLI powered by [Rich](https://github.com/Textualize/rich).
+- **Intelligent Context Management**: Efficiently manages context to optimize token usage and cost-effectiveness.
+
+---
+
+## 🚀 **Getting Started**
+
+### **Prerequisites**
+
+- Python ≥ 3.8
+- OpenAI API Key or OpenRouter API Key
+
+### **Installation**
+
+```bash
+git clone https://github.com/Arrogance/astra.git
+cd astra
+pip install -r requirements.txt
 ```
 
----
+### **Configuration**
 
-## Uso
+Edit `config.json` with your API keys and preferences:
+
+```json
+{
+    "api_key": "YOUR_API_KEY",
+    "model": "openai/gpt-4o",
+    "aux_model": "openai/gpt-3.5-turbo",
+    "referer": "https://yourwebsite.com",
+    "title": "Astra Chatbot"
+}
+```
+
+### **Usage**
 
 ```bash
 python main.py
 ```
 
-Durante la sesión, escribe libremente y usa `Ctrl+S` para enviar mensajes multilinea.
-
 ---
 
-## Comandos disponibles
+## 📂 **Project Structure**
 
-- `::exit` — Terminar la sesión actual
-- `::help` — Mostrar los comandos disponibles
-- `::carta <nombre>` — Genera una carta emocional dirigida a esa persona
-- `::ver logs` — Muestra las últimas líneas del log actual
-- `::ver memorias` — Muestra fragmentos de memoria recientes
-- `::ver diario` — Muestra entradas del diario guardadas
-- `::limpiar memorias` — Elimina memorias y diario anteriores a ahora
-- `::manual` — Muestra una breve guía de uso
-- `::cambiar perfil <nombre>` — Cambia el perfil activo (requiere reinicio)
-- `::ver perfil` — Muestra el perfil actual en uso
-
----
-
-## Personalización
-
-Crea un nuevo archivo en `instructions/<nombre>.txt` con tu estilo deseado. Luego usa:
-
-```bash
-::cambiar perfil nombre
 ```
-
-Y reinicia la app para que lo cargue.
-
----
-
-## Requisitos
-
-- Python 3.10+
-- `openai`, `prompt_toolkit`, `rich`
-
-Instala dependencias con:
-
-```bash
-pip install -r requirements.txt
+astra/
+├── cli/
+│   ├── commands.py           # CLI command handlers
+│   └── interface.py          # CLI interface logic
+├── memory/
+│   ├── database.py           # Database management
+│   └── emotional_memory.py   # Emotional memory logic
+├── models/
+│   └── openrouter_client.py  # OpenRouter API client
+├── profiles/
+│   └── profile_loader.py     # Profile loading logic
+├── utils/
+│   └── helpers.py            # Utility functions
+├── instructions/             # Instruction profiles
+├── logs/                     # Conversation logs
+├── config.json               # Configuration file
+├── requirements.txt          # Dependencies
+└── main.py                   # Entry point
 ```
 
 ---
 
-## Estado
+## 🛠️ **Advanced Usage**
 
-Este proyecto está en desarrollo activo y pensado para uso personal/experimental. Puedes adaptarlo a distintos tipos de conversación: coaching, auto-terapia, roleplay narrativo, etc.
+### **CLI Commands**
+
+Use special commands for enhanced interaction:
+
+- `::ver memorias`: Display stored memories.
+- `::carta`: Generate reflective letters from the AI.
+- `::cambiar perfil [profile_name]`: Switch to a different instruction profile.
+- `::limpiar memorias`: Clear stored memories.
+
+### **Creating Custom Profiles**
+
+Place custom instruction files (`.txt`) into the `instructions/` directory. Activate using CLI:
+
+```bash
+::cambiar perfil my_custom_profile
+::refrescar
+```
 
 ---
 
-## Licencia
+## 🧩 **Contributing**
 
-MIT. Uso libre, pero ten cuidado con lo que compartes. La IA recuerda.
+Contributions are welcome! To contribute:
+
+1. Fork this repository.
+2. Create a new branch (`git checkout -b feature/my-new-feature`).
+3. Commit changes (`git commit -am 'Add some feature'`).
+4. Push to the branch (`git push origin feature/my-new-feature`).
+5. Open a pull request.
+
+---
+
+## 📜 **License**
+
+MIT License. See [`LICENSE`](LICENSE) file for details.
+
+---
+
+## 🗒️ **Roadmap**
+
+- [x] Core memory and context management
+- [x] Multi-model integration
+- [ ] Unit and integration tests
+- [ ] Internationalization support (multi-language)
+- [ ] Token optimization improvements
+
+---
+
+## 📬 **Contact**
+
+- GitHub: [Arrogance](https://github.com/Arrogance)
+- Email: me@mraya.dev

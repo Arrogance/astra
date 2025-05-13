@@ -1,10 +1,9 @@
 # === as astra/context_builder.py ===
 
-import sqlite3
 from pathlib import Path
-from astra.memory import ensure_user_initialized, get_db_cursor, load_last_fragments
-from astra.emr import encode_fragments_with_emr
-from astra.utils import load_recent_log_summary, compress_text_for_model, load_and_summarize_logs
+from astra.memory.core import ensure_user_initialized, get_db_cursor, load_last_fragments
+from astra.memory.emr import encode_fragments_with_emr
+from astra.utils import load_and_summarize_logs
 from collections import defaultdict
 
 # EMR tags

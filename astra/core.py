@@ -3,7 +3,6 @@
 import os
 import json
 import re
-import importlib
 import inspect
 from datetime import datetime
 from rich.console import Console
@@ -17,13 +16,15 @@ from astra.config import load_config
 from astra.context_builder import build_context
 from astra.openrouter_client import setup_openrouter
 from astra.cli import create_prompt_session, print_header, confirm_exit
-from astra.memory import (
+from astra.analysis.composite_analyzer import CompositeAnalyzer
+from astra.memory.core import (
     init_db, close_connection, log_last_input, log_last_response,
-    save_fragment, extract_memory_note, update_memory, log_diary,
-    filter_relevant_fragments, is_memorable_by_ai, tag_fragment
+    save_fragment, log_diary,
+    filter_relevant_fragments, is_memorable_by_ai, tag_fragment, format_tags
 )
-from astra.utils import sanitize, tone_needs_grounding, get_log_file
-from astra.emr import encode_fragments_with_emr
+from astra.memory.filters import FragmentFilter
+from astra.utils import sanitize, get_log_file
+from astra.memory.emr import encode_fragments_with_emr
 
 def load_commands():
     return {
@@ -35,6 +36,8 @@ COMMANDS = load_commands()
 COMMAND_ALIASES = getattr(commands, "COMMAND_ALIASES", {})
 
 console = Console()
+analyzer = CompositeAnalyzer(language="es")
+filter = FragmentFilter()
 
 def is_emr_encoded(text: str) -> bool:
     """
@@ -230,9 +233,12 @@ def chat():
                     console.print(f"[dim]DEBUG: Respuesta cruda: {repr(reply)}[/]")
 
                 # Verificamos si es memorable con el aux_client
-                if is_memorable_by_ai(client, reply, aux_client, aux_model_name):
-                    tag = tag_fragment(reply)
-                    save_fragment(reply, tag, user_input, client)
+                if is_memorable_by_ai(aux_client, reply, aux_model_name):
+                    analysis = analyzer.analyze(reply)
+                    if filter.should_save(analysis):
+                        emr_tag = tag_fragment(reply)
+                        tag_string = format_tags(emr_tag, analysis)
+                        save_fragment(reply, tag_string, user_input, client)
 
             console.clear_live()
 
@@ -244,12 +250,12 @@ def chat():
 
             # Depuración si está habilitada
             if debug_enabled and reply != display_reply:
-                console.print(f"[dim]DEBUG: Etiquetas EMR eliminadas.[/]")
+                console.print("[dim]DEBUG: Etiquetas EMR eliminadas.[/]")
                 console.print(f"[dim]DEBUG: Original: {repr(reply)}[/]")
                 console.print(f"[dim]DEBUG: Limpio: {repr(display_reply)}[/]")
 
             # Procesar la respuesta como markdown y mostrarla
-            console.print(f"[bold cyan]Astra:[/]")  # Imprimir el prefijo
+            console.print("[bold cyan]Astra:[/]")  # Imprimir el prefijo
             console.print(Markdown(display_reply))  # Renderizar la respuesta como markdown
 
             # Registrar la versión limpia en el historial y log
