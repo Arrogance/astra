@@ -1,0 +1,8 @@
+nousresearch/hermes-3-llama-3.1-70b
+nousresearch/deephermes-3-llama-3-8b-preview:free
+nousresearch/deephermes-3-mistral-24b-preview:free
+openai/gpt-4o
+deepseek/deepseek-chat
+qwen/qwen3-235b-a22b
+mistralai/mistral-nemo
+microsoft/phi-3.5-mini-128k-instruct

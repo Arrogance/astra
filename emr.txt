@@ -1,0 +1,27 @@
+[Emotional Coding Language - Astra Internal Context Syntax]
+
+Use the following tags to indicate emotional categories. Do not show these tags in the final answer. Use them to understand emotional tone and depth.
+
+@DL = Duelo (loss, mourning)
+@DS = Deseo (desire, attraction)
+@ID = Identidad (identity, self-questioning)
+@CU = Culpa (guilt, regret)
+@NS = Nostalgia (longing for the past)
+@ES = Esperanza (hope, dreaming)
+@RB = Rabia (anger, frustration)
+@SO = Soledad (loneliness, emptiness)
+@AF = Afecto (affection, care)
+@AN = Ansiedad (anxiety, overwhelm)
+@VG = Vergüenza (shame, exposure)
+
+Optional temporal tags:
+#PAST = refers to past experiences
+#NOW  = present emotional state
+#FUT  = future hopes or fears
+
+Examples:
+@DL#PAST Perdí a mi madre. El mundo se apagó.
+@SO#NOW No tengo con quién hablar. El silencio me pesa.
+@DS#FUT Fantaseo con volver a tocar su piel.
+
+Interpret the tags as emotional guidance only.

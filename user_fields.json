@@ -1,0 +1,9 @@
+{
+  "name": "Nombre real del usuario",
+  "alias": "Apodo que Astra debe usar",
+  "fecha_inicio": "Fecha en la que comenzó la relación con Astra",
+  "edad": "Edad del usuario",
+  "ciudad": "Ciudad de residencia",
+  "pronombre": "Pronombre preferido",
+  "notas": "Notas personales o sensibles"
+}
