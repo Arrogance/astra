@@ -169,8 +169,9 @@ class Core:
                        (text, tag, date, user_input))
         self.conn.commit()
 
-    def tag_fragment(self, text: str) -> str:
-        # Por defecto, reemplaza por tu lógica avanzada o llama a tu analyzer externo
+    def tag_fragment(self, text: str, emotions: list[str]) -> str:
+        if emotions:
+            return emotions[0]
         return "reflexión"
 
     def format_tags(self, emr_tag: str, analysis: dict) -> str:
