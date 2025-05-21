@@ -206,7 +206,7 @@ class AstraCore:
                     if self.memory_core.is_memorable_by_ai(aux_client, reply, aux_model_name):
                         analysis = self.analyzer.analyze(reply)
                         if self.filter.should_save(analysis):
-                            emr_tag = self.memory_core.tag_fragment(reply)
+                            emr_tag = self.memory_core.tag_fragment(reply, analysis.get("emotions", []))
                             tag_string = self.memory_core.format_tags(emr_tag, analysis)
                             self.memory_core.save_fragment(reply, tag_string, user_input, client)
 
