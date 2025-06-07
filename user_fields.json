@@ -1,9 +1,9 @@
 {
-  "name": "Nombre real del usuario",
-  "alias": "Apodo que Astra debe usar",
-  "fecha_inicio": "Fecha en la que comenzó la relación con Astra",
-  "edad": "Edad del usuario",
-  "ciudad": "Ciudad de residencia",
-  "pronombre": "Pronombre preferido",
-  "notas": "Notas personales o sensibles"
+  "name": "User's real name",
+  "alias": "Nickname Astra should use",
+  "start_date": "Date when relationship with Astra began",
+  "age": "User's age",
+  "city": "City of residence",
+  "pronoun": "Preferred pronoun",
+  "notes": "Personal or sensitive notes"
 }

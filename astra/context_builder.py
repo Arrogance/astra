@@ -6,26 +6,26 @@ from collections import defaultdict
 
 class ContextBuilder:
     emr_tags = {
-        "duelo": "@DL", "deseo": "@DS", "identidad": "@ID", "culpa": "@CU", "nostalgia": "@NS",
-        "esperanza": "@ES", "rabia": "@RB", "soledad": "@SO", "afecto": "@AF", "ansiedad": "@AN", "vergüenza": "@VG"
+        "grief": "@DL", "desire": "@DS", "identity": "@ID", "guilt": "@CU", "nostalgia": "@NS",
+        "hope": "@ES", "rage": "@RB", "loneliness": "@SO", "affection": "@AF", "anxiety": "@AN", "shame": "@VG"
     }
 
     def __init__(self, core=None):
-        # Puedes pasar un Core ya inicializado, o crea uno nuevo por defecto
+        # You can pass an initialized Core, or create a new one by default
         self.core = core if core else Core()
 
     @staticmethod
     def detect_temporal_label(text: str) -> str:
         lower = text.lower()
-        if any(w in lower for w in ["ayer", "antes", "recuerdo", "fue", "perdí", "tuve"]): return "#PAST"
-        if any(w in lower for w in ["ahora", "hoy", "siento", "estoy", "me pasa"]): return "#NOW"
-        if any(w in lower for w in ["mañana", "algún día", "quizá", "espero", "soñaré"]): return "#FUT"
+        if any(w in lower for w in ["yesterday", "before", "remember", "was", "lost", "had"]): return "#PAST"
+        if any(w in lower for w in ["now", "today", "feel", "am", "happening"]): return "#NOW"
+        if any(w in lower for w in ["tomorrow", "someday", "maybe", "hope", "dream"]): return "#FUT"
         return ""
 
     def build_context(self, profile="astra") -> str:
         instr_path = Path(f"instructions/{profile}.txt")
         if not instr_path.exists():
-            raise FileNotFoundError(f"Instrucciones no encontradas: {instr_path}")
+            raise FileNotFoundError(f"Instructions not found: {instr_path}")
 
         user_data = self.core.ensure_user_initialized()
 

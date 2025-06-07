@@ -5,6 +5,19 @@ from typing import List, Tuple
 from pathlib import Path
 
 WEIGHTS_PATH = Path("emr_weights.json")
+EMR_TAGS = {
+    "@DL": ["duelo", "grief", "pérdida", "loss"],
+    "@DS": ["deseo", "desire", "motivación", "motivation"],
+    "@ID": ["identidad", "identity"],
+    "@CU": ["culpa", "guilt"],
+    "@NS": ["nostalgia"],
+    "@ES": ["esperanza", "hope"],
+    "@RB": ["rabia", "rage"],
+    "@SO": ["soledad", "loneliness"],
+    "@AF": ["afecto", "cariño", "affection", "fondness"],
+    "@AN": ["ansiedad", "anxiety"],
+    "@VG": ["vergüenza", "shame"]
+}
 
 def load_emr_weights():
     if WEIGHTS_PATH.exists():
@@ -17,6 +30,13 @@ def update_emr_weight(tag, new_weight):
     weights[tag] = float(new_weight)
     with open(WEIGHTS_PATH, "w", encoding="utf-8") as f:
         json.dump(weights, f, indent=2)
+
+def detect_emotional_tag(text: str) -> str | None:
+    text_lower = text.lower()
+    for tag, keywords in EMR_TAGS.items():
+        if any(word in text_lower for word in keywords):
+            return tag
+    return None
 
 def encode_fragments_with_emr(fragments: List[Tuple[str, str, str]]) -> str:
     """
@@ -34,6 +54,13 @@ def encode_fragments_with_emr(fragments: List[Tuple[str, str, str]]) -> str:
         lines.append(f"{tag_short}|{date}|{text_compact}")
 
     return "\n".join(lines)
+
+def get_emr_tag_from_keyword(keyword: str) -> str | None:
+    keyword = keyword.lower()
+    for tag, keywords in EMR_TAGS.items():
+        if keyword in keywords:
+            return tag
+    return None
 
 def compress_text(text: str) -> str:
     """

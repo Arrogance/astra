@@ -20,13 +20,13 @@ def create_prompt_session():
     return session
 
 def print_header(model_name: str, aux_model_name: str, profile: str):
-    console.print("[bold magenta]ASTRA – CLI Chatbot emocional[/]")
-    console.print(f"[bold blue]Modelo activo:[/] [italic]{model_name}[/]")
-    console.print(f"[bold blue]Modelo Aux activo:[/] [italic]{aux_model_name}[/]")
-    console.print(f"[bold blue]Perfil activo:[/] [italic]{profile}[/]")
-    console.print("[yellow]Escribe tu mensaje. Usa Ctrl+S para enviar, Ctrl+C para salir.[/]")
-
-def confirm_exit():
+    console.print("[bold magenta]ASTRA - Emotional CLI Chatbot[/]")
+    console.print(f"[bold blue]Active model:[/] [italic]{model_name}[/]")
+    console.print(f"[bold blue]Active Aux model:[/] [italic]{aux_model_name}[/]")
+    console.print(f"[bold blue]Active profile:[/] [italic]{profile}[/]")
+    console.print("[yellow]Type your message. Use Ctrl+S to send, Ctrl+C to exit.[/]")
+    
+    def confirm_exit():
     from rich.prompt import Prompt
-    confirm = Prompt.ask("[bold red]¿Seguro que quieres salir?[/] (s/n)", choices=["s", "n"], default="s")
+    confirm = Prompt.ask("[bold red]Are you sure you want to exit?[/] (y/n)", choices=["y", "n"], default="y")
     return confirm == "s"

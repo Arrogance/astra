@@ -2,6 +2,7 @@ import sqlite3
 import json
 from datetime import datetime
 from astra.utils import sanitize
+from astra.memory.emr import detect_emotional_tag, get_emr_tag_from_keyword
 
 class Core:
     DB_FILE = "astra_memory.db"
@@ -161,13 +162,46 @@ class Core:
 
     # --- Fragmentos y etiquetado ---
 
-    def save_fragment(self, text, tag, user_input, client=None):
-        text = sanitize(text).replace("\n", " ")
-        user_input = sanitize(user_input).replace("\n", " ")
-        date = datetime.now().strftime("%Y-%m-%d %H:%M")
-        self.c.execute("INSERT INTO fragments (text, tag, date, user_input) VALUES (?, ?, ?, ?)",
-                       (text, tag, date, user_input))
-        self.conn.commit()
+    def save_fragment(
+            self,
+            fragment: str,
+            tag: str = None,
+            user_id: str = None,
+            timestamp: str = None,
+            lang: str = "es",
+            is_significant: int = 1
+    ):
+        """
+        Guarda un fragmento de memoria emocional en la base de datos.
+
+        - fragment: texto a guardar
+        - tag: código EMR (si no es código, se normaliza)
+        - user_id: usuario (opcional)
+        - timestamp: si no se da, usa ahora
+        - lang: idioma (por defecto 'es')
+        - is_significant: 1 si es relevante, 0 si no
+        """
+        # Normalizar tag: siempre debe ser código EMR o None
+        if tag:
+            if not tag.startswith("@"):
+                tag_emr = get_emr_tag_from_keyword(tag)
+                if tag_emr:
+                    tag = tag_emr
+                else:
+                    tag = detect_emotional_tag(fragment) or tag
+        else:
+            tag = detect_emotional_tag(fragment)
+
+        if not timestamp:
+            timestamp = datetime.now().isoformat(timespec="seconds")
+
+        self.c.execute(
+            '''
+            INSERT INTO memory_fragments (fragment, tag, user_id, timestamp, lang, is_significant)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            (fragment, tag, user_id, timestamp, lang, is_significant)
+        )
 
     def tag_fragment(self, text: str, emotions: list[str]) -> str:
         if emotions:
